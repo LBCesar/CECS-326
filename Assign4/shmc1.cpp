@@ -2,7 +2,7 @@
 *	071463730
 *	CECS 326
 *	04/11/18
-*	Assignment 3
+*	Assignment 4
 *	shmc1.cpp 
 */
 
@@ -10,6 +10,7 @@
 #include <sys/types.h>			//	Contains data types
 #include <sys/ipc.h>	  		//  Interprocess communication access structure
 #include <sys/sem.h>			//	Defines the semaphore facility
+#include <semaphore.h>
 #include <sys/shm.h>  			//	Defines the XSI shared memory facility
 #include <sys/wait.h> 			//  Declarations for waiting, including constants used with wait() function call
 #include <unistd.h>   			//  Standard symbolic constants and types
@@ -17,6 +18,7 @@
 #include <iostream>   			//  Defines standard input/output stream objects
 #include <stdio.h>				//	Used for standard input/output and defines several macro names used as positive integral constant expressions
 #include <memory.h>   			//	Defines dynamic memory allocation
+#include <pthread.h>
 
 //  Represents the namespace to be used, which in this case is std, the C++ Standard Library
 //  For example, if the compiler sees string, it'll assume you are referring to std::string
@@ -27,6 +29,7 @@ void 	*memptr;									//	Declares pointer for shared memory segment
 char	*pname;										//	Declares pointer for process name
 int shmid; 											//	Declares variable for shared memory id (shmid)
 int ret;											//	Declares variable for return value pertaining to detaching of a shared memory segment (ret)
+//sem_t *sem;											//	Named Semaphore
 void rpterror(char *), srand(), perror(), sleep();	//	Declares functions used in the program
 void sell_seats();									//	Declares the sell_seats() function
 
@@ -56,6 +59,12 @@ main(int argc, char* argv[])
 
 	//	Assigns the shared memory segment pointer memptr to the declared CLASS structure pointer class_ptr
 	class_ptr = (struct CLASS *)memptr;
+	/*
+	if ((sem = sem_open("shmpSem", 0)) == SEM_FAILED)
+	{
+		perror("Failed to get semaphore");
+		exit(1);
+	}*/
 	//	Sells all available seats for the class
 	sell_seats();
 	//	Detaches the shared memory segment associated with the pointer memptr and initializes ret to 0 on successful completion
@@ -71,10 +80,13 @@ void sell_seats()
 
 	//	Initializes a pseudo-random number generator using the process id of this process as the seed
 	srand ( (unsigned) getpid() );
+	
 	//	First checks to ensure there are seats remaining, exits the loop if there is none
 	while ( !all_out) {   /* loop to sell all seats */
+		sem_wait(sem);
+		cout << pname << " is entering critical section" << endl;
 		//	Checks to ensure there are seats left before starting to sell seats
-		if (class_ptr->seats_left > 0) {
+		if (class_ptr->seats_left > 0) {	
 			//	Sleeps for a random number of seconds between 1 and 5 seconds
 			sleep ( (unsigned)rand()%5 + 1);
 			//	Removes a seat from the class
@@ -85,6 +97,7 @@ void sell_seats()
 			//	Format is the following: "pname" SOLD SEAT -- "seats_left" left (without the quotations)
 			cout << pname << " SOLD SEAT -- " 
 			     << class_ptr->seats_left << " left" << endl;
+			sem_post(sem);
 		}
 		else {
 			//	Increments all_out variable to indicate there are no seats left
