@@ -85,6 +85,8 @@ void sell_seats()
 	
 	//	First checks to ensure there are seats remaining, exits the loop if there is none
 	while ( !all_out) {   /* loop to sell all seats */
+		//	Decrements (locks ) the passed semaphore, value goes from 1 -> 0
+		//	Semaphore blocks when the value is zero
 		sem_wait(sem);
 		//	Checks to ensure there are seats left before starting to sell seats
 		if (class_ptr->seats_left > 0) {	
@@ -105,6 +107,9 @@ void sell_seats()
 			//	Outputs as the following: "pname" sees no seats left (without the quotations)
 			cout << pname << " sees no seats left" << endl;
 		}
+		//	Increments (unlocks) the passed semaphore, value goes from 0 -> 1
+		//	Since semaphore value > 0, another process blocked from previous sem_wait() call
+		//	Is woken up to lock the semaphore
 		sem_post(sem);
 		//	Sleeps for a random number of seconds between 1 and 10 seconds
 		sleep ( (unsigned)rand()%10 + 1);
