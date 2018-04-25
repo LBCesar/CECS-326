@@ -9,7 +9,6 @@
 #include "registration.h"	//	includes the registration.h header file which declares the structure named CLASS
 #include <sys/types.h>		//	Contains data types
 #include <sys/ipc.h>		//  Interprocess communication access structure
-#include <sys/sem.h>		//	Defines the semaphore facility
 #include <semaphore.h>		//	Defines the POSIX semaphore facility
 #include <sys/shm.h>		//	Defines the XSI shared memory facility
 #include <sys/wait.h> 		//  Declarations for waiting, including constants used with wait() function call
@@ -18,8 +17,8 @@
 #include <iostream>			//  Defines standard input/output stream objects
 #include <stdio.h>			//	Used for standard input/output and defines several macro names used as positive integral constant expressions
 #include <memory.h>			//	Defines dynamic memory allocation
-#include <fcntl.h>
-#include <pthread.h>
+#include <fcntl.h>			//	File control options, used for creating semaphore
+#include <pthread.h>		//	Used for threads
 
 //  Represents the namespace to be used, which in this case is std, the C++ Standard Library
 //  For example, if the compiler sees string, it'll assume you are referring to std::string
@@ -33,10 +32,11 @@ using namespace std;
 CLASS myclass = { "1001", "120186", "Operating Systems", 15 };
 
 #define NCHILD	3	//	indicate the number of child processes to create, which in this case is 3
+#define SNAME "shmpSem"	//	name to be used for named semaphore
 
 //	Declares the functions used in the main function before they are defined later in the program
 int	shm_init( void * );								
-void	wait_and_wrap_up( int [], void *, int );	
+void	wait_and_wrap_up( int [], void *, int , sem_t *);	
 void	rpterror( char *, char * );					
 
 main(int argc, char *argv[])
@@ -44,12 +44,9 @@ main(int argc, char *argv[])
 	int 	child[NCHILD];	//	Stores the process IDs of the child processes
 	int 	i; 				//	Process number
 	int		shmid;			//	Shared memory segment ID
-	//int		semid;			//	Semaphore ID
 	sem_t	*sem;			//	Semaphore
-	void	*shm_ptr;		//	Shared memory segment pointer
-	//void	*sem_ptr;		//	Semaphore pointer
+	void *shm_ptr;			//	Shared memory segment pointer
 	char	ascshmid[10];	//	Shared memory segment ID as a character array
-	char	ascsemid[10];	//	Semaphore ID as a character array
 	char 	pname[14];		//	Process name
 
 	strcpy (pname, argv[0]);			//	concatanates the first argument passed into the program to pname
@@ -58,14 +55,12 @@ main(int argc, char *argv[])
 
 
 	//	Initializes the semaphore and assigns to sem
-	if (sem_init(sem, 1, 1) == -1)
+	sem = sem_open(SNAME, O_CREAT, 0644, 1);
+	if(sem == SEM_FAILED) 
 	{
 		perror("Semaphore Initialization");
 		exit(1);
 	}
-
-	//semid = sem_init(sem_ptr);			//	creates a semaphore and assigns its identifer to semid
-	//sprintf(ascsemid, "%d", semid);		//	stores semid into the char array ascsemid
 
 	//	Create NCHILD number of child processes 
 	for (i = 0; i < NCHILD; i++) {
@@ -83,20 +78,20 @@ main(int argc, char *argv[])
 		//	%d represents the process number + 1 
 		case 0:
 			sprintf (pname, "shmc%d", i+1);
-			//	Replaces the program code with that of shmc1 and passes the process name and the process ID as the arguments
+			//	Replaces the program code with that of shmc1 
+			//  and passes the process name, process ID, and semaphore name as the arguments
 			//	Runs the process until it terminates
-			execl("shmc1", pname, ascshmid, (char *)0);
+			execl("shmc1", pname, ascshmid, SNAME, (char *)0);
 			//	Prints out the error message "execl failed" (without the quotations)
 			perror ("execl failed");
-			//	Exits the process and indicates the error is most likely due to misuse of built-in functions
+			//	Exits the process, indicating the error is most likely due to misuse of built-in functions
 			exit (2);
 		}
 	}
 	/*	Waits for all the child processes in child to terminate
 		before detaching the shared memory segment from shm_ptr
-	  	and destroys the shared memory segment from the system */
-	wait_and_wrap_up (child, shm_ptr, shmid);
-	sem_close(sem);
+	  	and destroys the shared memory segment and removes the semaphore from the system */
+	wait_and_wrap_up (child, shm_ptr, shmid, sem);
 	return 0;
 }
 
@@ -133,63 +128,11 @@ int shm_init(void *shm_ptr)
 	return (shmid);
 }
 
-/*	Creates a semaphore and returns the semaphore identifier
-
-// int sem_init(void *sem_ptr)
-// {
-// 	int semid;					//	Semaphore identifier
-// 	struct sembuf sembf;		//	Semaphore buffer
-
-// 	union semun {
-//     int              val;    /* Value for SETVAL */
-//     struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
-//     unsigned short  *array;  /* Array for GETALL, SETALL */
-//     struct seminfo  *__buf;  /* Buffer for IPC_INFO (Linux specific) */
-// 	} argument;
-
-// 	/*	Creates a semaphore and assigns the semaphore identifier to semid
-// 		The array of semaphores created has a size of 1
-// 		Permission given is everyone	*/
-// 	semid = semget(ftok(".", 'a'), 1, 0666 | IPC_CREAT);
-
-// 	//	Indicates creation of semaphore failed
-// 	if (semid == -1) {
-// 		perror ("semget failed");
-// 		exit(1);
-// 	}
-
-// 	// Sets value of semaphore in index 0 to the value of 0
-// 	if (semctl(semid, 0, SETVAL, argument) < 0) 
-// 	{
-// 		perror("Failed to set semaphore value.");
-// 		exit(1);
-// 	}
-// 	else 
-// 	{
-// 		printf("Semaphore %d has been initialized.\n", ftok(".", 'a'));
-// 	}
-
-// 	/*
-// 	//	Initializes the semaphore
-// 	//	Class is only decremented once each time per process therefore sem_op = 1
-// 	sembf.sem_num = 0;	
-// 	sembf.sem_op = 1;	//	Indicates number of runs before it queues
-// 	sembf.sem_flg = 0;
-
-	
-// 	if (semop(semid, &sembf, 1) == -1)
-// 	{
-// 		perror ("semop failed");
-// 		exit(1);
-// 	}
-// 	*/
-
-// }
-
 //	Waits for all child processes to terminate before 
 //	detaching the shared memory segment from the pointer *shm_ptr and 
 //	removing the shared memory segment associated with the identifier shmid
-void wait_and_wrap_up(int child[], void *shm_ptr, int shmid)
+//	Also unlinks and removes the named semaphore associated with *sem
+void wait_and_wrap_up(int child[], void *shm_ptr, int shmid, sem_t *sem)
 {
 	int wait_rtn = NCHILD;	//	Flag to indicate when a child is returned
 	int w = NCHILD;			//	Index of child process 
@@ -214,6 +157,10 @@ void wait_and_wrap_up(int child[], void *shm_ptr, int shmid)
 	//	Removes the shared memory segment identifier specified with shmid 
 	//	and destroys the shared memory segment and data structure associated with it. 
 	shmctl (shmid, IPC_RMID, (struct shmid_ds *) 0);
+
+	//	Unlinks and closes the named semaphore
+	sem_unlink(SNAME);
+	sem_close(sem);
 	//	Exits the process
 	exit (0);
 }
