@@ -1,21 +1,21 @@
 /*	Hoi Kiu Haydn Pang
 *	071463730
 *	CECS 326
-*	04/11/18
+*	05/03/18
 *	Assignment 4
 *	shmp1.cpp 
 */
 
-#include "registration.h"	//	includes the registration.h header file which declares the structure named CLASS
+#include "registration.h"	//	includes the registration.h header file which declares the structure CLASS
 #include <sys/types.h>		//	Contains data types
 #include <sys/ipc.h>		//  Interprocess communication access structure
 #include <semaphore.h>		//	Defines the POSIX semaphore facility
 #include <sys/shm.h>		//	Defines the XSI shared memory facility
 #include <sys/wait.h> 		//  Declarations for waiting, including constants used with wait() function call
 #include <unistd.h>			//  Standard symbolic constants and types
-#include <stdlib.h> 		//  Standard library that defines 4 variable types, several macros, and various functions for general usage
+#include <stdlib.h> 		//  Defines 4 variable types, several macros, and various functions for general functions
 #include <iostream>			//  Defines standard input/output stream objects
-#include <stdio.h>			//	Used for standard input/output and defines several macro names used as positive integral constant expressions
+#include <stdio.h>			//	Defines 3 variables types, macros, and functions used for standard input/output
 #include <memory.h>			//	Defines dynamic memory allocation
 #include <fcntl.h>			//	File control options, used for creating semaphore
 #include <pthread.h>		//	Used for threads

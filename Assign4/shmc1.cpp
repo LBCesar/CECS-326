@@ -1,21 +1,21 @@
 /*	Hoi Kiu Haydn Pang
 *	071463730
 *	CECS 326
-*	04/11/18
+*	05/03/18
 *	Assignment 4
 *	shmc1.cpp 
 */
 
-#include "registration.h" 		//	includes the registration.h header file which declares the structure named CLASS
+#include "registration.h" 		//	includes the registration.h header file which declares the structure CLASS
 #include <sys/types.h>			//	Contains data types
 #include <sys/ipc.h>	  		//  Interprocess communication access structure
 #include <semaphore.h>			//	Defines the POSIX semaphore facility
 #include <sys/shm.h>  			//	Defines the XSI shared memory facility
 #include <sys/wait.h> 			//  Declarations for waiting, including constants used with wait() function call
 #include <unistd.h>   			//  Standard symbolic constants and types
-#include <stdlib.h>   			//  Standard library that defines 4 variable types, several macros, and various functions for general usage
+#include <stdlib.h>   			//  Defines 4 variable types, several macros, and various functions for general functions
 #include <iostream>   			//  Defines standard input/output stream objects
-#include <stdio.h>				//	Used for standard input/output and defines several macro names used as positive integral constant expressions
+#include <stdio.h>				//	Defines 3 variables types, macros, and functions used for standard input/output
 #include <memory.h>   			//	Defines dynamic memory allocation
 #include <pthread.h>			//	Used for threads 
 
@@ -43,8 +43,8 @@ main(int argc, char* argv[])
 		exit(1);
 	}
 
-	pname = argv[0];						//	Initializes pname to the first argument, representing the name of the process
-	sscanf (argv[1], "%d", &shmid);			//	Stores the second argument as a decimal (integer) into the variable shmid
+	pname = argv[0];					//	Initializes pname to the first argument, representing the name of the process
+	sscanf (argv[1], "%d", &shmid);		//	Stores the second argument as a decimal (integer) into the variable shmid
 	semName = argv[2];
 	//	Attaches the shared memory segment associated with the shared memory identifier indicated by the variable shmid 
 	//	to the first available address as selected by the system as the second parameter is a null pointer
@@ -69,7 +69,8 @@ main(int argc, char* argv[])
 	}
 	//	Sells all available seats for the class
 	sell_seats();
-	//	Detaches the shared memory segment associated with the pointer memptr and initializes ret to 0 on successful completion
+	//	Detaches the shared memory segment associated with the pointer memptr
+	//	and initializes ret to 0 on successful completion
 	//	Otherwise, ret is initialized to -1 indicating the shared memory segment was not detached
 	ret = shmdt(memptr);	
 	exit(0); 				//	Exits the program indicating successful completion
@@ -78,7 +79,7 @@ main(int argc, char* argv[])
 //	Function to sell all seats in a class, indicated when seats_left <= 0 and all_out = 1
 void sell_seats() 
 {
-	int all_out = 0;	//	Variable to indicate if there are seats remaining (0 indicates available, 1 indicates unavailable)
+	int all_out = 0;	//	Indicates if there are seats remaining (0 available, 1 unavailable)
 
 	//	Initializes a pseudo-random number generator using the process id of this process as the seed
 	srand ( (unsigned) getpid() );
